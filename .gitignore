@@ -52,3 +52,10 @@ coverage/
 Thumbs.db
 *.swp
 *.swo
+
+# Local Data
+ats.db
+uploads/
+logs/
+reports/
+
