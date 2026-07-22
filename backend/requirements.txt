@@ -21,3 +21,10 @@ pandas
 scikit-learn
 joblib
 PyMuPDF
+chromadb
+xgboost
+lightgbm
+openpyxl
+pyarrow
+fastparquet
+optuna

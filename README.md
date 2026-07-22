@@ -1,53 +1,76 @@
 # ATS Resume Analyzer
 
 ## Project Overview
-ATS Resume Analyzer is an AI-powered Offline Applicant Tracking System designed to evaluate resumes against Job Descriptions (JD) securely and privately. 
+ATS Resume Analyzer is an AI-powered Offline Applicant Tracking System designed to evaluate resumes against Job Descriptions (JD) securely and privately. The system uses local LLMs and embeddings to ensure candidate data never leaves your environment.
 
-## Architecture
-The application runs locally without internet dependencies using an offline LLM (Llama 3.2 via Ollama) for analysis, a FastAPI backend, and a Next.js frontend dashboard.
+## Architecture & Design
+The application has recently undergone a major **Enterprise Architecture Refactoring**. It follows Clean Architecture principles, ensuring that business logic, data access, and routing are strictly decoupled. 
+- **Frontend**: Built with Next.js, React, and Tailwind CSS using a **Feature-Based Architecture**.
+- **Backend**: Built with Python, FastAPI, and SQLAlchemy using a **Service-Repository Pattern**.
+- **AI/ML**: Powered by Llama 3.2 (via Ollama), HuggingFace SentenceTransformers, PyMuPDF, and XGBoost.
+- **Database**: SQLite (Local defaults) with SQLAlchemy ORM.
 
-## Technology Stack
-- **Frontend**: Next.js, React, Tailwind CSS
-- **Backend**: Python, FastAPI, SQLAlchemy
-- **Database**: PostgreSQL / SQLite (Local)
-- **AI/ML**: Ollama (Llama 3.2), HuggingFace SentenceTransformers
-- **Deployment**: Docker, Docker Compose, Nginx
+## Project Structure
 
-## Folder Structure
+### Backend (`/backend`)
 ```
-/frontend    - Next.js UI Dashboard (Owner: SUTHEESHWARAN)
-/backend     - FastAPI application (Owner: dharunkumarsengottuvelu-dev)
-/database    - SQL schemas & migrations (Owner: gowthamganesan103-cmyk)
-/docker      - Container configs (Owner: ha-rish632)
-/ai-model    - Local models & embeddings (Owner: dharunkumarsengottuvelu-dev)
+/backend
+├── /ai             # AI/ML modules (parser, embeddings, scoring, recommendation)
+├── /api            # Versioned API routes (e.g., /api/v1/routes)
+├── /core           # Centralized configuration, logging, and security
+├── /database       # Session management and database setup
+├── /models         # SQLAlchemy database models
+├── /repositories   # Data Access Layer (CRUD operations)
+├── /schemas        # Pydantic validation schemas
+└── /services       # Core Business Logic
+```
+
+### Frontend (`/frontend`)
+```
+/frontend
+├── /app            # Next.js App Router (Pages, Layouts)
+├── /components     # UI components divided by responsibility
+│   ├── /features   # Complex business components (e.g., AnalysisPanel, FileUpload)
+│   ├── /layout     # Layout wrappers (e.g., Sidebar, NetworkMonitor)
+│   └── /ui         # Reusable basic components (Buttons, Inputs)
+├── /services       # API Integration logic
+├── /store          # Zustand state management
+├── /types          # TypeScript type definitions
+└── /utils          # Helper functions and constants
 ```
 
 ## Installation & Development
 
 ### 1. Database
-Set up PostgreSQL and configure the connection string in your environment variables.
+The system uses SQLite by default (stored at `backend/ats.db`). If using PostgreSQL, configure the `DATABASE_URL` in your backend environment variables or `.env` file.
 
 ### 2. AI Model (Ollama)
 Ensure Ollama is installed locally and the Llama 3.2 model is pulled:
-`ollama run llama3.2`
+```bash
+ollama run llama3.2
+```
 
-### 3. Backend
+### 3. Backend Setup
 ```bash
 cd backend
 python -m venv .venv
-source .venv/bin/activate  # On Windows: .venv\Scripts\activate
+# On Windows:
+.venv\Scripts\activate
+# On Linux/Mac:
+source .venv/bin/activate
+
 pip install -r requirements.txt
-uvicorn backend.main:app --reload
+python -m uvicorn backend.main:app --reload
 ```
 
-### 4. Frontend
+### 4. Frontend Setup
 ```bash
 cd frontend
 npm install
 npm run dev
 ```
 
-## Docker Running
+## Docker Deployment
 To run the full stack via Docker:
 ```bash
 docker-compose up --build
@@ -58,4 +81,3 @@ Please refer to [CONTRIBUTING.md](CONTRIBUTING.md) for detailed guidelines on br
 
 ## License
 MIT License
-

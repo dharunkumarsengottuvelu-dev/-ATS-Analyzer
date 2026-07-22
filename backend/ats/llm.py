@@ -1,6 +1,6 @@
 import json
 from ollama import AsyncClient
-from backend.prompts.reviewer import REVIEWER_PROMPT, REWRITER_PROMPT
+from backend.ai.prompts.reviewer import REVIEWER_PROMPT, REWRITER_PROMPT
 
 async def get_resume_review(resume_text: str, job_description: str = "") -> dict:
     """
@@ -13,26 +13,25 @@ async def get_resume_review(resume_text: str, job_description: str = "") -> dict
     
     client = AsyncClient(host='http://localhost:11434')
     
-    response = await client.chat(model='llama3.2', messages=[
-        {
-            'role': 'user',
-            'content': prompt
-        }
-    ], options={'temperature': 0.3})
-    
-    # Attempt to parse the JSON response
     try:
+        response = await client.chat(model='llama3.2', messages=[
+            {
+                'role': 'user',
+                'content': prompt
+            }
+        ], options={'temperature': 0.3})
+        
         content = response['message']['content']
         # Very basic sanitization in case the model outputs markdown blocks
         if content.startswith("```json"):
             content = content[7:-3]
         return json.loads(content)
     except Exception as e:
-        print(f"Failed to parse LLM response: {e}")
+        print(f"Ollama/LLM Error: {e}")
         return {
             "strengths": [],
-            "weaknesses": ["Failed to generate review. Please try again."],
-            "feedback": "LLM Parsing error.",
+            "weaknesses": ["Failed to generate review. Please check if Ollama is running."],
+            "feedback": "LLM Parsing or Connection error.",
             "recommendations": []
         }
 
@@ -47,21 +46,21 @@ async def rewrite_section(section_name: str, section_text: str) -> dict:
     
     client = AsyncClient(host='http://localhost:11434')
     
-    response = await client.chat(model='llama3.2', messages=[
-        {
-            'role': 'user',
-            'content': prompt
-        }
-    ], options={'temperature': 0.5})
-    
     try:
+        response = await client.chat(model='llama3.2', messages=[
+            {
+                'role': 'user',
+                'content': prompt
+            }
+        ], options={'temperature': 0.5})
+        
         content = response['message']['content']
         if content.startswith("```json"):
             content = content[7:-3]
         return json.loads(content)
     except Exception as e:
-        print(f"Failed to parse LLM response: {e}")
+        print(f"Ollama/LLM Error: {e}")
         return {
             "rewritten_text": section_text,
-            "changes_made": "Error during rewrite generation."
+            "changes_made": "Error during rewrite generation. Is Ollama running?"
         }

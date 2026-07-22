@@ -1,5 +1,10 @@
 # Dependencies
 node_modules/
+frontend/node_modules_old/
+backend/python312_base/
+.venv_old/
+training_data/
+backend/database/chroma_db/
 .pnp
 .pnp.js
 
@@ -58,4 +63,3 @@ ats.db
 uploads/
 logs/
 reports/
-
