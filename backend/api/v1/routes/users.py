@@ -6,7 +6,7 @@ from typing import Optional
 from backend.database.session import get_db
 from backend.models.user import User
 from backend.models.settings import Settings as SettingsModel
-from backend.api.deps import get_current_user
+from backend.api.v1.routes.deps import get_current_user
 
 router = APIRouter(
     prefix="/users",

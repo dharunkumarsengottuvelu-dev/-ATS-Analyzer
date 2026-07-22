@@ -1,11 +1,12 @@
 'use client';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { analyzeJobMatch, generateReport, checkReportStatus } from '@/services/api';
 import ScoreChart from './ScoreChart';
-import { Check, X, FileText, Download } from 'lucide-react';
+import { Check, X, FileText, Download, RotateCcw } from 'lucide-react';
 import { ParsedResume } from '@/types';
 import axios from 'axios';
 import { useMutation } from '@tanstack/react-query';
+import { useResumeStore } from '@/store/useResumeStore';
 
 interface AnalysisPanelProps {
     parsedData: ParsedResume | null;
@@ -13,23 +14,33 @@ interface AnalysisPanelProps {
 }
 
 export default function AnalysisPanel({ parsedData, filename }: AnalysisPanelProps) {
-    const [jobDescription, setJobDescription] = useState('');
+    const { jobDescription, analysisResult, setJobDescription, setAnalysisResult, clearAll } = useResumeStore();
     
+    // Avoid hydration mismatch
+    const [isMounted, setIsMounted] = useState(false);
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    useEffect(() => setIsMounted(true), []);
+
     const analyzeMutation = useMutation({
         mutationFn: async () => {
             if (!parsedData || !jobDescription) throw new Error("Missing data");
             return analyzeJobMatch(parsedData.raw_text, jobDescription);
+        },
+        onSuccess: (data) => {
+            setAnalysisResult(data);
         },
         onError: (e) => {
             console.error("Analysis Failed", e);
         }
     });
 
-    const results = analyzeMutation.data;
+    const results = analysisResult;
     
     // Status tracking for background report generation
     const [isGeneratingReport, setIsGeneratingReport] = useState(false);
     const [reportStatusMessage, setReportStatusMessage] = useState<string>('');
+
+    if (!isMounted) return null;
 
     if (!parsedData) {
         return (
@@ -68,6 +79,14 @@ export default function AnalysisPanel({ parsedData, filename }: AnalysisPanelPro
                 </div>
             ) : (
                 <div className="flex flex-col gap-6">
+                    <div className="flex justify-end">
+                        <button 
+                            onClick={clearAll}
+                            className="flex items-center gap-2 text-sm text-zinc-400 hover:text-zinc-200 transition-colors"
+                        >
+                            <RotateCcw className="w-4 h-4" /> Clear Analysis
+                        </button>
+                    </div>
                     {/* Score Card */}
                     <div className="p-6 bg-zinc-900 border border-zinc-800 rounded-xl shadow-xl flex flex-col md:flex-row gap-8 items-center">
                         <div className="flex-1 flex flex-col items-center text-center">
@@ -76,7 +95,7 @@ export default function AnalysisPanel({ parsedData, filename }: AnalysisPanelPro
                                 {Math.round((results.metrics.semantic_match_percentage * 0.5) + (results.metrics.keyword_coverage_percentage * 0.5))}%
                             </div>
                         </div>
-                        <div className="flex-1 w-full">
+                        <div className="flex-1 w-full min-w-0">
                             <ScoreChart 
                                 semanticScore={results.metrics.semantic_match_percentage}
                                 keywordScore={results.metrics.keyword_coverage_percentage}
@@ -137,13 +156,35 @@ export default function AnalysisPanel({ parsedData, filename }: AnalysisPanelPro
                                                 setIsGeneratingReport(false);
                                                 setReportStatusMessage(`Report Ready! (Generated in ${status.execution_time}s)`);
                                                 
-                                                const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000/api/v1';
-                                                const baseUrl = apiUrl.replace('/api/v1', '');
-                                                window.open(baseUrl + status.pdf_url, '_blank');
+                                                try {
+                                                    const pdfResponse = await axios.get(
+                                                        (process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000/api/v1') + status.pdf_url,
+                                                        { 
+                                                            responseType: 'blob',
+                                                            headers: {
+                                                                Authorization: `Bearer ${localStorage.getItem('access_token')}`
+                                                            }
+                                                        }
+                                                    );
+                                                    
+                                                    const blob = new Blob([pdfResponse.data], { type: 'application/pdf' });
+                                                    const url = window.URL.createObjectURL(blob);
+                                                    const a = document.createElement("a");
+                                                    a.href = url;
+                                                    a.download = `${filename.replace(/[^a-z0-9]/gi, '_').toLowerCase()}_ATS_Report.pdf`;
+                                                    document.body.appendChild(a);
+                                                    a.click();
+                                                    a.remove();
+                                                    window.URL.revokeObjectURL(url);
+                                                } catch (downloadErr) {
+                                                    console.error("Download failed", downloadErr);
+                                                    setReportStatusMessage("Failed to download PDF report.");
+                                                }
                                             } else if (status.status === "failed") {
                                                 clearInterval(interval);
                                                 setIsGeneratingReport(false);
-                                                setReportStatusMessage("Failed: " + status.error);
+                                                const errorMessage = status.error || status.message || "Unknown error";
+                                                setReportStatusMessage("Failed: " + errorMessage);
                                             }
                                         } catch (err) {
                                             console.error("Polling error", err);

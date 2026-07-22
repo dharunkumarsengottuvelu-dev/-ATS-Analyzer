@@ -19,3 +19,14 @@ export const checkReportStatus = async (jobId: string): Promise<ReportStatus> =>
     const response = await apiClient.get(`/report/status/${jobId}`);
     return response.data;
 };
+
+export const getJobRecommendations = async (resumeData: {
+    title: string;
+    summary: string;
+    skills: string[];
+    total_experience: number;
+}) => {
+    const response = await apiClient.post('/recommendations/match', resumeData);
+    return response.data;
+};
+

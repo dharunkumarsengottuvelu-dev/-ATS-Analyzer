@@ -20,14 +20,25 @@ from backend.database.session import engine, SessionLocal, get_db, Base  # noqa:
 from backend.models import User, Resume, JobDescription, Analysis, Report, Settings, ActivityLog, Skill  # noqa: E402
 from backend.core.security import get_password_hash  # noqa: E402
 
-Base.metadata.create_all(bind=engine)
+db_status = "connected"
+db_error = None
+try:
+    Base.metadata.create_all(bind=engine)
+except Exception as e:
+    db_status = "offline"
+    db_error = str(e)
+    logging.error(f"Database connection failed on startup: {e}")
 
 # ---------------------------------------------------------------------------
 # Seed default admin user on startup
 # ---------------------------------------------------------------------------
 @app.on_event("startup")
 def seed_default_user():
-    db = SessionLocal()
+    if db_status == "offline":
+        logging.warning("Skipping default user seed due to database offline.")
+        return
+        
+    db = SessionLocal() 
     try:
         user = db.query(User).filter(User.username == "admin").first()
         if not user:
@@ -38,13 +49,15 @@ def seed_default_user():
             )
             db.add(default_user)
             db.commit()
+    except Exception as e:
+        logging.error(f"Failed to seed admin user: {e}")
     finally:
         db.close()
 
 # ---------------------------------------------------------------------------
 # Routers
 # ---------------------------------------------------------------------------
-from backend.api import resume, analyze, report, auth, history, users, analytics  # noqa: E402
+from backend.api.v1.routes import resume, analyze, report, auth, history, users, analytics, recommendations  # noqa: E402
 
 app.include_router(auth.router,      prefix="/api/v1")
 app.include_router(resume.router,    prefix="/api/v1")
@@ -53,20 +66,38 @@ app.include_router(report.router,    prefix="/api/v1")
 app.include_router(history.router,   prefix="/api/v1")
 app.include_router(users.router,     prefix="/api/v1")
 app.include_router(analytics.router, prefix="/api/v1")
+app.include_router(recommendations.router, prefix="/api/v1")
 
 # ---------------------------------------------------------------------------
 # Health & version endpoints
 # ---------------------------------------------------------------------------
 @app.get("/api/v1/health")
 async def health_check():
+    import httpx
+    ollama_status = "DOWN"
+    try:
+        async with httpx.AsyncClient(timeout=2.0) as client:
+            response = await client.get("http://localhost:11434/")
+            if response.status_code == 200:
+                ollama_status = "UP"
+    except Exception:
+        pass
+
+    db_status_up = "UP" if db_status == "connected" else "DOWN"
+    
+    # Assume embeddings are up if ollama is up, or just hardcode to UP for now
+    embeddings_status = "UP"
+
+    overall = "UP" if db_status_up == "UP" else "DOWN"
+
     return {
-        "status": "UP",
-        "version": "1.0.0",
+        "status": overall,
         "components": {
-            "database": "UP",
-            "ollama": "UP",
-            "embeddings": "UP"
-        }
+            "database": db_status_up,
+            "ollama": ollama_status,
+            "embeddings": embeddings_status
+        },
+        "error": db_error if db_error else None
     }
 
 @app.get("/api/v1/version")
@@ -90,6 +121,7 @@ async def log_requests(request: Request, call_next):
             status_code=500,
             content={"message": "An unexpected server error occurred.", "details": str(exc)},
         )
+        
     process_time = time.time() - start_time
     logger.info(
         f"path={request.url.path} method={request.method} "

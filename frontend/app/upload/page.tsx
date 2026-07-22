@@ -1,13 +1,22 @@
 'use client';
-import { useState } from 'react';
-import FileUpload from "@/components/FileUpload";
-import AnalysisPanel from "@/components/AnalysisPanel";
-
-import { ParsedResume } from '@/types';
+import { useEffect, useState } from 'react';
+import FileUpload from "@/components/features/FileUpload";
+import AnalysisPanel from "@/components/features/AnalysisPanel";
+import RecommendationsPanel from "@/components/features/RecommendationsPanel";
+import { useResumeStore } from '@/store/useResumeStore';
 
 export default function Home() {
-  const [parsedData, setParsedData] = useState<ParsedResume | null>(null);
-  const [filename, setFilename] = useState<string>("");
+  const { parsedData, filename, setUploadData } = useResumeStore();
+  const [isMounted, setIsMounted] = useState(false);
+
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setIsMounted(true);
+  }, []);
+
+  // Avoid hydration mismatch by rendering default state until mounted
+  const displayData = isMounted ? parsedData : null;
+  const displayFilename = isMounted ? filename : "";
 
   return (
     <div className="flex flex-col gap-8 max-w-5xl mx-auto pb-12">
@@ -21,17 +30,23 @@ export default function Home() {
           <h2 className="text-xl font-semibold text-zinc-200">1. Upload Resume</h2>
           <FileUpload 
             onUploadSuccess={(data, name) => {
-              setParsedData(data);
-              setFilename(name);
+              setUploadData(data, name);
             }} 
           />
         </div>
         
-        <div className="flex flex-col gap-6">
+        <div className="flex flex-col gap-6 min-w-0">
           <h2 className="text-xl font-semibold text-zinc-200">2. Job Match & Analysis</h2>
-          <AnalysisPanel parsedData={parsedData} filename={filename} />
+          <AnalysisPanel parsedData={displayData} filename={displayFilename} />
         </div>
       </section>
+
+      {displayData && (
+        <section className="mt-8 pt-8 border-t border-zinc-800">
+          <h2 className="text-xl font-semibold text-zinc-200 mb-6">3. Explore Jobs for You</h2>
+          <RecommendationsPanel parsedData={displayData} />
+        </section>
+      )}
     </div>
   );
 }

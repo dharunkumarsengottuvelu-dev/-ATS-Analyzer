@@ -1,7 +1,8 @@
 'use client';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { LayoutDashboard, History, FileText, BarChart2, Settings, UserCircle, HelpCircle } from "lucide-react";
+import { LayoutDashboard, History, FileText, BarChart2, Settings, UserCircle, HelpCircle, Sparkles } from "lucide-react";
+import { useResumeStore } from '@/store/useResumeStore';
 
 export default function Sidebar() {
     const pathname = usePathname();
@@ -33,6 +34,9 @@ export default function Sidebar() {
                 <Link href="/reports" className={`flex items-center gap-3 px-3 py-2 rounded-lg transition-colors group ${pathname === '/reports' ? 'bg-zinc-800 text-zinc-100' : 'text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800/50'}`}>
                     <FileText className={`w-5 h-5 ${pathname === '/reports' ? 'text-blue-500' : 'group-hover:text-blue-500'}`} /> Reports
                 </Link>
+                <Link href="/recommendations" className={`flex items-center gap-3 px-3 py-2 rounded-lg transition-colors group ${pathname === '/recommendations' ? 'bg-zinc-800 text-zinc-100' : 'text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800/50'}`}>
+                    <Sparkles className={`w-5 h-5 ${pathname === '/recommendations' ? 'text-blue-500' : 'group-hover:text-blue-500'}`} /> Recommendations
+                </Link>
                 <Link href="/analytics" className={`flex items-center gap-3 px-3 py-2 rounded-lg transition-colors group ${pathname === '/analytics' ? 'bg-zinc-800 text-zinc-100' : 'text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800/50'}`}>
                     <BarChart2 className={`w-5 h-5 ${pathname === '/analytics' ? 'text-blue-500' : 'group-hover:text-blue-500'}`} /> Analytics
                 </Link>
@@ -51,6 +55,7 @@ export default function Sidebar() {
                 <button 
                     onClick={() => {
                         localStorage.removeItem('access_token');
+                        useResumeStore.getState().clearAll();
                         window.location.href = '/login';
                     }}
                     className="flex items-center gap-3 px-3 py-2 text-zinc-400 hover:text-red-400 hover:bg-red-950/30 rounded-lg transition-colors w-full text-left"

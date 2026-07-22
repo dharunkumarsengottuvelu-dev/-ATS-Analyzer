@@ -7,7 +7,7 @@ from typing import List, Dict, Any
 from backend.database.session import get_db
 from backend.models.analysis import Analysis
 from backend.models.resume import Resume
-from backend.api.deps import get_current_user
+from backend.api.v1.routes.deps import get_current_user
 from backend.models.user import User
 
 router = APIRouter(

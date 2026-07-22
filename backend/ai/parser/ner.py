@@ -1,6 +1,6 @@
 import re
 from backend.schemas.resume import ContactInfo, ParsedResume
-from backend.parser.classifier import predict_resume_category
+from backend.ai.parser.classifier import predict_resume_category
 
 def extract_contact_info(text: str) -> ContactInfo:
     """

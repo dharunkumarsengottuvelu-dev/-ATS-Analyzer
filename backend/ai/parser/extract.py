@@ -2,7 +2,7 @@ import pypdf
 import docx
 import io
 from fastapi import UploadFile
-from backend.ocr.tesseract import extract_text_with_ocr
+from backend.ai.ocr.tesseract import extract_text_with_ocr
 
 async def extract_text_from_file(file: UploadFile) -> str:
     """

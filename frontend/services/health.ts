@@ -20,10 +20,10 @@ export const checkBackendHealth = async (): Promise<HealthStatus> => {
         const response = await healthClient.get('/health');
         const data = response.data;
         return {
-            isOnline: data?.status === 'UP',
-            database: data?.components?.database || 'UNKNOWN',
-            ollama: data?.components?.ollama || 'UNKNOWN',
-            embeddings: data?.components?.embeddings || 'UNKNOWN'
+            isOnline: data?.status === 'UP' || data?.status === 'healthy' || data?.status === 'degraded',
+            database: data?.components?.database === 'UP' ? 'UP' : (data?.database === 'connected' ? 'UP' : 'DOWN'),
+            ollama: data?.components?.ollama === 'UP' ? 'UP' : (data?.ollama === 'connected' ? 'UP' : 'DOWN'),
+            embeddings: data?.components?.embeddings || 'UP'
         };
     } catch {
         // Silently return offline status — no console errors while backend is starting

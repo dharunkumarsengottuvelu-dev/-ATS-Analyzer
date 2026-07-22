@@ -3,9 +3,9 @@ from sqlalchemy.orm import Session
 from backend.database.session import get_db
 from backend.models.resume import Resume
 from backend.models.user import User
-from backend.api.deps import get_current_user_optional
-from backend.parser.extract import extract_text_from_file
-from backend.parser.ner import parse_resume
+from backend.api.v1.routes.deps import get_current_user_optional
+from backend.ai.parser.extract import extract_text_from_file
+from backend.ai.parser.ner import parse_resume
 from backend.schemas.resume import UploadResponse
 import os
 import uuid

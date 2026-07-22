@@ -4,13 +4,13 @@ from pydantic import BaseModel
 from sqlalchemy.orm import Session
 from backend.database.session import get_db, SessionLocal
 from backend.schemas.analysis import MatchMetrics
-from backend.scoring.engine import calculate_ats_score
+from backend.ai.scoring.engine import calculate_ats_score
 from backend.ats.llm import get_resume_review
 from backend.reports.generator import generate_pdf_report
 from backend.models.report import Report
 from backend.models.analysis import Analysis
 from backend.models.user import User
-from backend.api.deps import get_current_user_optional
+from backend.api.v1.routes.deps import get_current_user_optional
 from typing import Optional
 import os
 import uuid
@@ -83,8 +83,8 @@ async def _generate_report_task(job_id: str, request: ReportRequest, user_id: in
             writer.writerow([
                 request.filename, 
                 ats_score, 
-                ", ".join(request.metrics.missing_keywords),
-                ", ".join(request.metrics.matched_keywords),
+                ", ".join(request.metrics.missing_skills),
+                ", ".join(request.metrics.matched_skills),
                 llm_feedback
             ])
         
@@ -96,14 +96,16 @@ async def _generate_report_task(job_id: str, request: ReportRequest, user_id: in
                 analysis_id=request.analysis_id if request.analysis_id else 1,
                 format="multiple",
                 file_path=pdf_path,
-                llm_feedback=llm_feedback
+                llm_feedback=json.dumps(llm_feedback) if isinstance(llm_feedback, dict) else str(llm_feedback)
             )
             db.add(db_report)
             
             if request.analysis_id:
                 db_analysis = db.query(Analysis).filter(Analysis.id == request.analysis_id).first()
                 if db_analysis:
-                    db_analysis.ats_score = ats_score
+                    db_analysis.ats_score = float(ats_score["overall_score"])
+                    db_analysis.semantic_score = float(ats_score["breakdown"]["semantic_score"])
+                    db_analysis.keyword_score = float(ats_score["breakdown"]["keyword_score"])
                     
             db.commit()
         finally:
@@ -115,9 +117,9 @@ async def _generate_report_task(job_id: str, request: ReportRequest, user_id: in
         jobs[job_id] = {
             "status": "completed",
             "message": "Report generated successfully",
-            "pdf_url": f"/api/v1/report/download?filepath={pdf_path}",
-            "json_url": f"/api/v1/report/download?filepath={json_path}",
-            "csv_url": f"/api/v1/report/download?filepath={csv_path}",
+            "pdf_url": f"/report/download?analysis_id={request.analysis_id if request.analysis_id else 1}&format=pdf",
+            "json_url": f"/report/download?analysis_id={request.analysis_id if request.analysis_id else 1}&format=json",
+            "csv_url": f"/report/download?analysis_id={request.analysis_id if request.analysis_id else 1}&format=csv",
             "ats_score": ats_score,
             "llm_feedback": llm_feedback,
             "execution_time": round(elapsed, 2)
@@ -127,7 +129,8 @@ async def _generate_report_task(job_id: str, request: ReportRequest, user_id: in
         logger.error(f"Job {job_id}: Failed with error: {str(e)}")
         jobs[job_id] = {
             "status": "failed",
-            "message": f"Report generation failed: {str(e)}"
+            "message": f"Report generation failed: {str(e)}",
+            "error": str(e)
         }
 
 @router.post("/generate")

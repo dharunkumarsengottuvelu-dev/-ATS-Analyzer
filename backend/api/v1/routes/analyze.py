@@ -2,13 +2,13 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from backend.database.session import get_db
 from backend.schemas.analysis import AnalyzeRequest, AnalyzeResponse, MatchMetrics
-from backend.analyzer.skills import extract_skills, match_job_description
-from backend.embeddings.semantic import calculate_semantic_similarity
+from backend.ai.analyzer.skills import extract_skills, match_job_description
+from backend.ai.embeddings.semantic import calculate_semantic_similarity
 from backend.models.skill import Skill
 from backend.models.analysis import Analysis
 from backend.models.job import JobDescription
 from backend.models.user import User
-from backend.api.deps import get_current_user_optional
+from backend.api.v1.routes.deps import get_current_user_optional
 
 router = APIRouter(
     prefix="/analyze",

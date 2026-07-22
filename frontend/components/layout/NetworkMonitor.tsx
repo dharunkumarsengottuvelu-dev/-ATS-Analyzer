@@ -10,7 +10,7 @@ export default function NetworkMonitor({ children }: { children: React.ReactNode
     const MAX_RETRIES = 20; // 60 seconds (3s intervals)
     const [missingEnv, setMissingEnv] = useState<string | null>(null);
 
-    const verifyNetwork = async () => {
+    const verifyNetwork = async (currentRetry: number) => {
         if (!process.env.NEXT_PUBLIC_API_URL) {
             setMissingEnv('NEXT_PUBLIC_API_URL');
             setIsChecking(false);
@@ -22,11 +22,11 @@ export default function NetworkMonitor({ children }: { children: React.ReactNode
         
         if (status.isOnline && status.database === 'UP') {
             setIsChecking(false);
-        } else if (retryCount < MAX_RETRIES) {
+        } else if (currentRetry < MAX_RETRIES) {
             // Auto-retry every 3 seconds if offline
             setTimeout(() => {
-                setRetryCount(prev => prev + 1);
-                verifyNetwork();
+                setRetryCount(currentRetry + 1);
+                verifyNetwork(currentRetry + 1);
             }, 3000);
         } else {
             setIsChecking(false);
@@ -34,7 +34,7 @@ export default function NetworkMonitor({ children }: { children: React.ReactNode
     };
 
     useEffect(() => {
-        verifyNetwork();
+        verifyNetwork(0);
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
@@ -97,7 +97,7 @@ export default function NetworkMonitor({ children }: { children: React.ReactNode
                     onClick={() => {
                         setRetryCount(0);
                         setIsChecking(true);
-                        verifyNetwork();
+                        verifyNetwork(0);
                     }}
                     className="flex items-center gap-2 px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-medium transition-colors mt-2"
                 >

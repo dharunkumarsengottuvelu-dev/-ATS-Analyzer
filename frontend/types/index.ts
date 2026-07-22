@@ -87,3 +87,21 @@ export interface ReportStatus {
     execution_time?: number;
     error?: string;
 }
+
+export interface JobRecommendation {
+    job_id: string;
+    company_name: string;
+    job_title: string;
+    location: string;
+    experience_required: number;
+    semantic_similarity: number;
+    matched_skills: string[];
+    missing_skills: string[];
+    ats_compatibility_score: number;
+    confidence_score: number;
+    match_percentage: number;
+    ranking_position: number;
+    why_recommended: string;
+    learning_recommendations: string[];
+}
+
